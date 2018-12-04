@@ -64,7 +64,7 @@ blocks_in_hex <- blocks_in_hex[, c(1,33:150,154,155)]
 # the values is the average of an average acrross blocks, for others
 # is the average of frequencies. Think about possible consequences!!!!
 blocks_in_hex@data <-  blocks_in_hex@data %>% group_by(ID) %>% 
-                                summarise_all(funs(mean))
+                                summarise_all(funs(median)) #just changed it to median
 
 # The varaibles that are now the mean of the frequency we are going to convert 
 # them to a percentage by dividing by the average total of people.
