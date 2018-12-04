@@ -9,7 +9,7 @@
 
 ## Create hexagons of equal sized from shp_rm --------------------------
 set.seed(1)
-size = 0.004 # original 0.0041, no se pueden hacer más pequeños que 0.000041
+size = 0.004 # before 0.004 original 0.0041, no se pueden hacer más pequeños que 0.000041
 hex_points <- spsample(shp_rm, type = "hexagonal", cellsize = size)
 hex_grid <- HexPoints2SpatialPolygons(hex_points, dx = size)
 hex_grid$area_sqm <- area(hex_grid)/1000000
@@ -54,6 +54,9 @@ summary(manzanas_x_hex$total_blocks)
 # Merge hex_grid with new variable
 hexgrid_blocks <- merge(hex_grid, manzanas_x_hex, by = "ID")
 
+# Add commune
+commune_x_hex <- blocks_in_hex@data %>% group_by(ID) %>% dplyr::summarise(comuna = min(DES_COMU))
+hexgrid_blocks <- merge(hex_grid, commune_x_hex, by = "ID")
 
 # Subset blocks_in_hex, just keep variables of interest 
 # Maybe is better to use var names instead of their index.
@@ -63,7 +66,8 @@ blocks_in_hex <- blocks_in_hex[, c(1,33:150,154,155)]
 # per block. Next we get the average of those variables, hencem for some
 # the values is the average of an average acrross blocks, for others
 # is the average of frequencies. Think about possible consequences!!!!
-blocks_in_hex@data <-  blocks_in_hex@data %>% group_by(ID) %>% 
+
+blocks_in_hex@data <-  blocks_in_hex@data %>% group_by(ID) %>%  
                                 summarise_all(funs(median)) #just changed it to median
 
 # The varaibles that are now the mean of the frequency we are going to convert 
@@ -92,12 +96,50 @@ vars <- c("tot_per", "tot_muj", "tot_hom","d0a7", "d7a17", "d18a29",
 blocks_in_hex <- blocks_in_hex[,!(names(blocks_in_hex) %in% vars)] 
 
 # ADD prop_freqs to blocks_in_hex
+# something change when I group with DEs_COMU, had to add duplicateGeoms = TRUE now
 blocks_in_hex <- merge(blocks_in_hex, prop_freqs, by = "ID")
 
 # from https://gis.stackexchange.com/questions/109652/removing-columns-in-a-spatialpolygonsdataframe-in-r
 
 # Add to hex spdf the data from census blocks aggregated at hexagon level
 hexgrid_blocks <- merge(hexgrid_blocks, blocks_in_hex@data, by = "ID")
+
+# Create variable of Santiago Sectors:
+# North: Conchalí, Huechuraba, Independencia, Recoleta, Quilicura (Renca, Chicureo)
+# Center: Santiago
+# Northeast: La Reina, Las Condes, Lo Barnechea, Ñuñoa, Providencia, Vitacura
+# Southeast: La Florida, Peñalolén, Macul, Puente Alto, San José de Maipo, Pirque.
+# South: El Bosque, La Cisterna, La Granja, La Pintana, Lo Espejo, Pedro Aguirre Cerda
+#        San Joaquín, San Miguel, San Ramón, San Bernardo.
+# Southwest: Maipú, Estación Central, Cerrillos, Padre Hurtado.
+# NorthWest: Cerro NAvia, Lo Prado, Pudahuel, Quinta Normal.
+
+north <- c("CONCHALÍ", "HUECHURABA", "INDEPENDENCIA", "RECOLETA", "QUILICURA")
+center <- "SANTIAGO"
+northeast <- c("LA REINA", "LAS CONDES", "LO BARNECHEA", "ÑUÑOA", "PROVIDENCIA", "VITACURA")
+southeast <- c("LA FLORIDA", "PEÑALOLÉN", "MACUL", "PUENTE ALTO")
+south <- c("EL BOSQUE", "LA CISTERNA", "LA GRANJA", "LA PINTANA", "LO ESPEJO", "PEDRO AGUIRRE CERDA",
+           "SAN JOAQUÍN", "SAN MIGUEL", "SAN RAMÓN", "SAN BERNARDO")
+southwest <- c("MAIPÚ", "ESTACIÓN CENTRAL", "CERRILLOS", "PADRE HURTADO")
+northwest <- c("CERRO NAVIA", "LO PRADO", "PUDAHUEL", "QUINTA NORMAL")
+
+hexgrid_blocks$sector <- NA
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% north] <- "north"
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% center] <- "center"
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% northeast] <- "northeast"
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% southeast] <- "southeast"
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% south] <- "south"
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% southwest] <- "southwest"
+hexgrid_blocks$sector[hexgrid_blocks$comuna %in% northwest] <- "northwest"
+
+hexgrid_blocks$sector5 <- NA
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% north] <- "north"
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% center] <- "center"
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% northeast] <- "east"
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% southeast] <- "south"
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% south] <- "south"
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% southwest] <- "west"
+hexgrid_blocks$sector5[hexgrid_blocks$comuna %in% northwest] <- "west"
 
 ## merge with voters data ---------------------------------------------------
 
@@ -148,7 +190,7 @@ voters_in_hex@data <- voters_in_hex@data %>%
 # Create variables by hexagon ID, just mean of voting?
 voters_by_hex <- voters_in_hex@data
 voters_by_hex <- voters_by_hex %>% group_by(ID) %>% 
-                                summarise_all(funs(mean(., na.rm = TRUE)))
+                                summarise_all(funs(median(., na.rm = TRUE))) # change to median
 
 # leave only the meaningful variables? 
 
