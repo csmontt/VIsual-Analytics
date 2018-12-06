@@ -60,7 +60,8 @@ hexgrid_blocks <- merge(hex_grid, commune_x_hex, by = "ID")
 
 # Subset blocks_in_hex, just keep variables of interest 
 # Maybe is better to use var names instead of their index.
-blocks_in_hex <- blocks_in_hex[, c(1,33:150,154,155)]
+#blocks_in_hex <- blocks_in_hex[, c(1,33:150,154,155)]
+blocks_in_hex <- blocks_in_hex[, c(1,33:167)]
 
 # Some variables are the mean for each block, others are the total of persons
 # per block. Next we get the average of those variables, hencem for some
@@ -154,7 +155,7 @@ padron <- s3readRDS("padron_resultados_elecciones_rm.rds", bucket = "voter.regis
                      key = "", secret = "", region = "eu-west-2")
 
 
-# padron <- readRDS("./data/padron_resultados_elecciones_rm.rds") 
+# pad-ron <- readRDS("./data/padron_resultados_elecciones_rm.rds") 
 
 vars <- c("lat", "long", "CG", "JAK", "SP", 
           "AG", "BS", "MEO", "EA", "AN", "VVE", "VN",
@@ -206,6 +207,13 @@ hexGrid$diff_1 <- hexGrid$right_perc_1 - hexGrid$left_perc_1
 hexGrid$diff_2 <- hexGrid$right_perc_2 - hexGrid$left_perc_2
 
 hexGrid$swing <- ((hexGrid$right_perc_2 - hexGrid$right_perc_1) - (hexGrid$left_perc_2 - hexGrid$left_perc_1))/2
+
+hexGrid$GSE <- round(6-hexGrid$gse.num)
+
+hexGrid$log_educ.anos <- log(hexGrid$educ.anos)
+hexGrid$log_right_1 <- log(hexGrid$right_perc_1)
+hexGrid$log_right_2 <- log(hexGrid$right_perc_2)
+hexGrid$log_swing  <- log(hexGrid$swing)
 
 rm(blocks_in_hex, freq_to_mean, hex_grid, hex_voters, 
    hexgrid_blocks, manzanas_x_hex, prop_freqs, shp_rm, 
