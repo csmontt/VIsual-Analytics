@@ -61,7 +61,7 @@ hexgrid_blocks <- merge(hex_grid, commune_x_hex, by = "ID")
 # Subset blocks_in_hex, just keep variables of interest 
 # Maybe is better to use var names instead of their index.
 #blocks_in_hex <- blocks_in_hex[, c(1,33:150,154,155)]
-blocks_in_hex <- blocks_in_hex[, c(1,33:167)]
+blocks_in_hex <- blocks_in_hex[, c(1,33:162,166,167)]
 
 # Some variables are the mean for each block, others are the total of persons
 # per block. Next we get the average of those variables, hencem for some
@@ -203,17 +203,74 @@ hexGrid <- merge(hexgrid_blocks, hex_voters@data, by = "ID")
 hexGrid <- hexGrid[!is.na(hexGrid$right_perc_2), ]
 
 # Difference betweeen right and left
-hexGrid$diff_1 <- hexGrid$right_perc_1 - hexGrid$left_perc_1
-hexGrid$diff_2 <- hexGrid$right_perc_2 - hexGrid$left_perc_2
+hexGrid$diff_right <- hexGrid$right_perc_2 - hexGrid$right_perc_1  
+hexGrid$diff_left  <- hexGrid$left_perc_2 - hexGrid$left_perc_1
 
 hexGrid$swing <- ((hexGrid$right_perc_2 - hexGrid$right_perc_1) - (hexGrid$left_perc_2 - hexGrid$left_perc_1))/2
 
 hexGrid$GSE <- round(6-hexGrid$gse.num)
 
-hexGrid$log_educ.anos <- log(hexGrid$educ.anos)
-hexGrid$log_right_1 <- log(hexGrid$right_perc_1)
-hexGrid$log_right_2 <- log(hexGrid$right_perc_2)
-hexGrid$log_swing  <- log(hexGrid$swing)
+# hexGrid$log_educ.anos <- log(hexGrid$educ.anos)
+# hexGrid$log_right_1 <- log(hexGrid$right_perc_1)
+# hexGrid$log_right_2 <- log(hexGrid$right_perc_2)
+# hexGrid$log_swing  <- log(hexGrid$swing)
+
+# Working over age variables
+# First, deleting non adults variables
+todrop <- names(hexGrid) %in% c("d0a7", "d7a17") 
+hexGrid <- hexGrid[!todrop]
+# Creating young adults variable
+hexGrid$young_adults <- hexGrid$d18a29 + hexGrid$d30a39
+# Creating rest of adults variable
+hexGrid$rest_adults <- hexGrid$d40a49 + hexGrid$d50a59 + 
+        hexGrid$d60a69 + hexGrid$d70a79 + hexGrid$d80a89 + 
+        hexGrid$d90a_
+# Deleting original age variables
+todrop2 <- names(hexGrid) %in% c("d18a29", "d30a39", "d40a49", "d50a59", 
+                                    "d60a69", "d70a79", "d80a89", "d90a_") 
+hexGrid <- hexGrid[!todrop2]
+
+# Participation: create a variable showing difference between 2nd and 1st round
+hexGrid$diff_part <- hexGrid$part2 - hexGrid$part
+
+# Women/Men ratio:
+hexGrid$women_ratio <- hexGrid$tot_muj / hexGrid$tot_hom
+
+hexGrid$EdPreSchool <- hexGrid$educNunca + hexGrid$educJardin + hexGrid$educKinder 
+hexGrid$EdPrimarySchool <- hexGrid$educBasica + hexGrid$educDif
+hexGrid$EdSecondarySchool  <- hexGrid$educMTecnica + hexGrid$educMCtfcoHum 
+# hexGrid$EdSecondaryTechincalSchool <- hexGrid$educMTecnica
+# hexGrid$EdSecondaryNonTechincalSchool <- hexGrid$educMCtfcoHum
+hexGrid$EdTechnicalHighedu <- hexGrid$eductSupTecnica
+hexGrid$EdNonTechnicalHighedu <- hexGrid$educSupProfesional
+# hexGrid$EdHigherEdu <- hexGrid$eductSupTecnica + hexGrid$educSupProfesional
+hexGrid$Edpostgraduate <- hexGrid$educPostit +  hexGrid$educMAg + hexGrid$educDoc
+
+hexGrid$Employee <- hexGrid$empleo.asalariado + hexGrid$empleo.independiente
+hexGrid$Employer <- hexGrid$empleo.empresario
+hexGrid$Unemployed <- hexGrid$empleo.desempleado
+hexGrid$OtherEmp <- hexGrid$empleo.estudiando + hexGrid$empleo.jubilado.o.rentista +
+        hexGrid$empleo.no_remunerado + hexGrid$empleo.otra.situacion + 
+        hexGrid$empleo.servicio.doméstico
+
+
+selected_vars <- c("ID", "comuna", "young_adults", "rest_adults", "women_ratio",
+  "educ.anos", "EdPreSchool", "EdPrimarySchool", "EdSecondarySchool", "EdTechnicalHighedu",
+  "EdNonTechnicalHighedu", "Edpostgraduate", "Employee", "Employer", "Unemployed",
+  "pueblo.orig.1", "sabe.leer.escribir.1", "alfb.internet.1", "religion.1",
+  "religion.2", "inmigrante.2", "SES.Index", "gse.num", "tot_per", "tot_muj", 
+  "tot_hom", "sector5", "part", "part2", "diff_part", "left_perc_1", "right_perc_1",  
+  "left_perc_2", "right_perc_2", "diff_right", "diff_left", "swing")
+
+hexGrid <- hexGrid[selected_vars]
+
+names(hexGrid)[which(names(hexGrid) == "educ.anos")] <- "years_education"
+names(hexGrid)[which(names(hexGrid) == "pueblo.orig.1")] <- "indigenous_pop"
+names(hexGrid)[which(names(hexGrid) == "sabe.leer.escribir.1")] <- "knows_to_read_and_write"
+names(hexGrid)[which(names(hexGrid) == "alfb.internet.1")] <- "knows_to_use_internet"
+names(hexGrid)[which(names(hexGrid) == "religion.1")] <- "religion_catholic"
+names(hexGrid)[which(names(hexGrid) == "religion.2")] <- "religion_evangelicos"
+names(hexGrid)[which(names(hexGrid) == "inmigrante.2")] <- "inmigrants"
 
 rm(blocks_in_hex, freq_to_mean, hex_grid, hex_voters, 
    hexgrid_blocks, manzanas_x_hex, prop_freqs, shp_rm, 
